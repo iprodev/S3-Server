@@ -22,15 +22,15 @@ jobs:
             goarch: arm64
           - goos: windows
             goarch: amd64
-    
+  
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
-    
+
     - name: Build
       env:
         GOOS: ${{ matrix.goos }}
@@ -45,9 +45,18 @@ jobs:
         go mod tidy
         go mod download
         CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/${BINARY_NAME} ./cmd/s3_server
-    
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: s3_server-${{ matrix.goos }}-${{ matrix.goarch }}
         path: dist/*
+
+    - name: Upload files to GH release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ github.ref }}
+        file: s3_server-${{ matrix.goos }}-${{ matrix.goarch }}
+        asset_name: s3_server-${{ matrix.goos }}-${{ matrix.goarch }}
+        prerelease: true
