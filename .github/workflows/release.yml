@@ -14,38 +14,23 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
-            artifact_name: S3-Server-linux-amd64
           - goos: linux
             goarch: arm64
-            artifact_name: S3-Server-linux-arm64
           - goos: linux
             goarch: armv7
-            artifact_name: S3-Server-linux-armv7
           - goos: linux
             goarch: armv6
-            artifact_name: S3-Server-linux-armv6
           - goos: linux
             goarch: armv5
-            artifact_name: S3-Server-linux-armv5
           - goos: linux
             goarch: 386
-            artifact_name: S3-Server-linux-386
           - goos: linux
             goarch: s390x
-            artifact_name: S3-Server-linux-s390x
           - goos: darwin
             goarch: amd64
-            artifact_name: S3-Server-darwin-amd64
           - goos: darwin
             goarch: arm64
-            artifact_name: S3-Server-darwin-arm64
-          - goos: windows
-            goarch: amd64
-            artifact_name: S3-Server-windows-amd64
-          - goos: windows
-            goarch: 386
-            artifact_name: S3-Server-windows-386
-  
+
     steps:
     - uses: actions/checkout@v4
 
@@ -60,7 +45,7 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
         CGO_ENABLED: 0
       run: |
-        BINARY_NAME=${{ matrix.artifact_name }}
+        BINARY_NAME=S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME="${BINARY_NAME}.exe"
         fi
@@ -71,14 +56,14 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ matrix.artifact_name }}
-        path: ./${{ matrix.artifact_name }}
+        name: S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: ./S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
 
     - name: Upload files to GH release
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ github.ref }}
-        file: ${{ matrix.artifact_name }}
-        asset_name: ${{ matrix.artifact_name }}
+        file: S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
+        asset_name: S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
         prerelease: true
