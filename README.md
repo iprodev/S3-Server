@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Go Version](https://img.shields.io/badge/go-%3E%3D1.19-00ADD8.svg)
+![Go Version](https://img.shields.io/badge/go-%3E%3D1.22-00ADD8.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen.svg)

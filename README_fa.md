@@ -3,7 +3,7 @@
 <div align="center" dir="rtl">
 
 ![نسخه](https://img.shields.io/badge/نسخه-1.0.0-blue.svg)
-![نسخه Go](https://img.shields.io/badge/go-%3E%3D1.19-00ADD8.svg)
+![نسخه Go](https://img.shields.io/badge/go-%3E%3D1.22-00ADD8.svg)
 ![لایسنس](https://img.shields.io/badge/لایسنس-MIT-green.svg)
 ![تست‌ها](https://img.shields.io/badge/تست‌ها-موفق-brightgreen.svg)
 ![پوشش](https://img.shields.io/badge/پوشش-85%25-brightgreen.svg)

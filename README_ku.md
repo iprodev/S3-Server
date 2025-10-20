@@ -3,7 +3,7 @@
 <div align="center" dir="rtl">
 
 ![وەشان](https://img.shields.io/badge/وەشان-1.0.0-blue.svg)
-![وەشانی Go](https://img.shields.io/badge/go-%3E%3D1.19-00ADD8.svg)
+![وەشانی Go](https://img.shields.io/badge/go-%3E%3D1.22-00ADD8.svg)
 ![مۆڵەتنامە](https://img.shields.io/badge/مۆڵەتنامە-MIT-green.svg)
 ![تاقیکردنەوەکان](https://img.shields.io/badge/تاقیکردنەوەکان-سەرکەوتوو-brightgreen.svg)
 ![داپۆشین](https://img.shields.io/badge/داپۆشین-85%25-brightgreen.svg)
