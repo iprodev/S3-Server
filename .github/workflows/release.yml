@@ -56,4 +56,5 @@ jobs:
         tag: ${{ github.ref }}
         file: S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
         asset_name: S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
+        overwrite: true
         prerelease: true
