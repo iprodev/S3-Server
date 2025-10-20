@@ -1,0 +1,23 @@
+{
+  "bucket": "logs",
+  "rules": [
+    {
+      "id": "expire-old-logs",
+      "prefix": "logs/",
+      "enabled": true,
+      "expiration_days": 30,
+      "transition_days": 7,
+      "abort_incomplete_multipart_days": 7,
+      "delete_marker_expiration": true
+    },
+    {
+      "id": "expire-debug-logs",
+      "prefix": "logs/debug/",
+      "enabled": true,
+      "expiration_days": 7,
+      "transition_days": 0,
+      "abort_incomplete_multipart_days": 1,
+      "delete_marker_expiration": true
+    }
+  ]
+}

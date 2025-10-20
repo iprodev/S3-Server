@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: s3-node
+  namespace: s3-storage
+  labels:
+    app: s3-node
+    component: storage
+spec:
+  serviceName: s3-node-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: s3-node
+      component: storage
+  template:
+    metadata:
+      labels:
+        app: s3-node
+        component: storage
+    spec:
+      containers:
+      - name: s3-node
+        image: s3-server:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - /app/s3_server
+        args:
+          - "-mode"
+          - "node"
+          - "-listen"
+          - ":8080"
+          - "-data"
+          - "/data"
+          - "-auth_token"
+          - "$(NODE_AUTH_TOKEN)"
+          - "-log_level"
+          - "$(NODE_LOG_LEVEL)"
+        env:
+          - name: NODE_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: s3-secrets
+                key: node-auth-token
+          - name: NODE_LOG_LEVEL
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: NODE_LOG_LEVEL
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        volumeMounts:
+          - name: data
+            mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3-node-headless
+  namespace: s3-storage
+  labels:
+    app: s3-node
+    component: storage
+spec:
+  clusterIP: None
+  selector:
+    app: s3-node
+    component: storage
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3-node
+  namespace: s3-storage
+  labels:
+    app: s3-node
+    component: storage
+spec:
+  type: ClusterIP
+  selector:
+    app: s3-node
+    component: storage
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

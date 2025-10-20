@@ -1,0 +1,344 @@
+{
+  "dashboard": {
+    "title": "S3 Storage System Dashboard",
+    "tags": ["s3", "storage", "metrics"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_requests_total[5m])",
+            "legendFormat": "{{method}} {{operation}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Requests/sec"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "In-Flight Requests",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "s3_requests_in_flight",
+            "legendFormat": "In-Flight",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "short",
+            "label": "Requests"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Request Duration (P50, P95, P99)",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(s3_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(s3_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(s3_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "s",
+            "label": "Duration"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Operations Rate",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_put_object_total[5m])",
+            "legendFormat": "PUT",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(s3_get_object_total[5m])",
+            "legendFormat": "GET",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(s3_delete_object_total[5m])",
+            "legendFormat": "DELETE",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(s3_list_objects_total[5m])",
+            "legendFormat": "LIST",
+            "refId": "D"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Operations/sec"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Storage Usage",
+        "type": "stat",
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "s3_bytes_stored_total / 1024 / 1024 / 1024",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "unit": "GB"
+        }
+      },
+      {
+        "id": 6,
+        "title": "Objects Stored",
+        "type": "stat",
+        "gridPos": {
+          "x": 6,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "s3_objects_stored_total",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Buckets Total",
+        "type": "stat",
+        "gridPos": {
+          "x": 12,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "s3_buckets_total",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Active Multipart Uploads",
+        "type": "stat",
+        "gridPos": {
+          "x": 18,
+          "y": 16,
+          "w": 6,
+          "h": 4
+        },
+        "targets": [
+          {
+            "expr": "s3_multipart_uploads_active",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Data Transfer Rate",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_upload_bytes_total[5m])",
+            "legendFormat": "Upload - {{bucket}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(s3_download_bytes_total[5m])",
+            "legendFormat": "Download - {{bucket}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "Bps",
+            "label": "Bytes/sec"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Authentication Success vs Failure",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 20,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_auth_success_total[5m])",
+            "legendFormat": "Success",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(s3_auth_failure_total[5m])",
+            "legendFormat": "Failure",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "reqps",
+            "label": "Auth attempts/sec"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Error Rate by Type",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 28,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_errors_total[5m])",
+            "legendFormat": "{{operation}} - {{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "errors/sec",
+            "label": "Errors/sec"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Multipart Upload Stats",
+        "type": "graph",
+        "gridPos": {
+          "x": 12,
+          "y": 28,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_multipart_uploads_total[5m])",
+            "legendFormat": "Initiated",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(s3_multipart_uploads_completed[5m])",
+            "legendFormat": "Completed",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(s3_multipart_uploads_aborted[5m])",
+            "legendFormat": "Aborted",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Uploads/sec"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Lifecycle Expirations",
+        "type": "graph",
+        "gridPos": {
+          "x": 0,
+          "y": 36,
+          "w": 12,
+          "h": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(s3_lifecycle_expirations_total[1h])",
+            "legendFormat": "Expirations",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {
+            "format": "ops",
+            "label": "Expirations/hour"
+          }
+        ]
+      }
+    ]
+  }
+}

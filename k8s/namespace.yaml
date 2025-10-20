@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: s3-storage
+  labels:
+    name: s3-storage
+    app: s3-server

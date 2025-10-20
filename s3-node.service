@@ -1,0 +1,48 @@
+[Unit]
+Description=S3 Storage Node
+Documentation=https://github.com/iProDev/S3-Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=s3user
+Group=s3user
+
+# Working directory
+WorkingDirectory=/opt/s3_server
+
+# Binary and arguments
+ExecStart=/opt/s3_server/s3_server \
+    -mode node \
+    -listen :8080 \
+    -data /var/lib/s3_server/data \
+    -auth_token ${NODE_AUTH_TOKEN} \
+    -log_level info
+
+# Restart policy
+Restart=always
+RestartSec=5s
+StartLimitInterval=0
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/s3_server
+
+# Environment file
+EnvironmentFile=-/etc/s3_server/node.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=s3-node
+
+[Install]
+WantedBy=multi-user.target

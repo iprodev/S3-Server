@@ -1,0 +1,215 @@
+version: '3.8'
+
+services:
+  # Storage Nodes (3 replicas for high availability)
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: s3-node1
+    hostname: node1
+    command:
+      - "-mode"
+      - "node"
+      - "-listen"
+      - ":8080"
+      - "-data"
+      - "/data"
+      - "-auth_token"
+      - "${NODE_AUTH_TOKEN:-changeme}"
+      - "-log_level"
+      - "info"
+    volumes:
+      - node1-data:/data
+    networks:
+      - s3-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  node2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: s3-node2
+    hostname: node2
+    command:
+      - "-mode"
+      - "node"
+      - "-listen"
+      - ":8080"
+      - "-data"
+      - "/data"
+      - "-auth_token"
+      - "${NODE_AUTH_TOKEN:-changeme}"
+      - "-log_level"
+      - "info"
+    volumes:
+      - node2-data:/data
+    networks:
+      - s3-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  node3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: s3-node3
+    hostname: node3
+    command:
+      - "-mode"
+      - "node"
+      - "-listen"
+      - ":8080"
+      - "-data"
+      - "/data"
+      - "-auth_token"
+      - "${NODE_AUTH_TOKEN:-changeme}"
+      - "-log_level"
+      - "info"
+    volumes:
+      - node3-data:/data
+    networks:
+      - s3-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Gateway Server
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: s3-gateway
+    hostname: gateway
+    command:
+      - "-mode"
+      - "gateway"
+      - "-listen"
+      - ":8080"
+      - "-nodes"
+      - "http://node1:8080,http://node2:8080,http://node3:8080"
+      - "-replicas"
+      - "3"
+      - "-w"
+      - "2"
+      - "-r"
+      - "1"
+      - "-storage_policy"
+      - "replication"
+      - "-backend_auth_token"
+      - "${NODE_AUTH_TOKEN:-changeme}"
+      - "-auth_enabled"
+      - "true"
+      - "-auth_config"
+      - "/app/auth.json"
+      - "-metrics_enabled"
+      - "true"
+      - "-metrics_port"
+      - "9091"
+      - "-lifecycle_enabled"
+      - "true"
+      - "-lifecycle_config_dir"
+      - "/app/lifecycle"
+      - "-performance_enabled"
+      - "true"
+      - "-cache_size_mb"
+      - "512"
+      - "-query_cache_mb"
+      - "64"
+      - "-log_level"
+      - "info"
+    ports:
+      - "8080:8080"    # S3 API
+      - "9091:9091"    # Metrics
+    volumes:
+      - ./auth.json:/app/auth.json:ro
+      - ./lifecycle:/app/lifecycle:ro
+      - gateway-tmp:/app/tmp
+    networks:
+      - s3-network
+    depends_on:
+      - node1
+      - node2
+      - node3
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    labels:
+      - "com.example.description=S3-compatible storage gateway"
+      - "com.example.version=1.0.0"
+
+  # Prometheus for metrics collection (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: s3-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - s3-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for visualization (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: s3-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-dashboard.json:/etc/grafana/provisioning/dashboards/s3-dashboard.json:ro
+    networks:
+      - s3-network
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+networks:
+  s3-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  node1-data:
+    driver: local
+  node2-data:
+    driver: local
+  node3-data:
+    driver: local
+  gateway-tmp:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

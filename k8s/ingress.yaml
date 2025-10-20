@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: s3-gateway-ingress
+  namespace: s3-storage
+  annotations:
+    # Nginx ingress annotations
+    nginx.ingress.kubernetes.io/proxy-body-size: "5000m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    
+    # If using cert-manager for TLS:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    
+    # If using other ingress controllers, adjust annotations accordingly
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: s3.example.com  # Change to your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: s3-gateway
+            port:
+              number: 8080
+  # TLS configuration (optional)
+  # tls:
+  # - hosts:
+  #   - s3.example.com
+  #   secretName: s3-gateway-tls

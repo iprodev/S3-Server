@@ -1,0 +1,193 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3-gateway
+  namespace: s3-storage
+  labels:
+    app: s3-gateway
+    component: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: s3-gateway
+      component: gateway
+  template:
+    metadata:
+      labels:
+        app: s3-gateway
+        component: gateway
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: s3-gateway
+        image: s3-server:latest
+        imagePullPolicy: IfNotPresent
+        command:
+          - /app/s3_server
+        args:
+          - "-mode"
+          - "gateway"
+          - "-listen"
+          - ":8080"
+          - "-nodes"
+          - "http://s3-node-0.s3-node-headless:8080,http://s3-node-1.s3-node-headless:8080,http://s3-node-2.s3-node-headless:8080"
+          - "-replicas"
+          - "$(REPLICAS)"
+          - "-w"
+          - "$(WRITE_QUORUM)"
+          - "-r"
+          - "$(READ_QUORUM)"
+          - "-storage_policy"
+          - "$(STORAGE_POLICY)"
+          - "-backend_auth_token"
+          - "$(NODE_AUTH_TOKEN)"
+          - "-metrics_enabled"
+          - "true"
+          - "-metrics_port"
+          - "$(METRICS_PORT)"
+          - "-performance_enabled"
+          - "true"
+          - "-cache_size_mb"
+          - "$(CACHE_SIZE_MB)"
+          - "-query_cache_mb"
+          - "$(QUERY_CACHE_MB)"
+          - "-enable_prefetch"
+          - "$(ENABLE_PREFETCH)"
+          - "-log_level"
+          - "$(GATEWAY_LOG_LEVEL)"
+        env:
+          - name: NODE_AUTH_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: s3-secrets
+                key: node-auth-token
+          - name: GATEWAY_LOG_LEVEL
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: GATEWAY_LOG_LEVEL
+          - name: REPLICAS
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: REPLICAS
+          - name: WRITE_QUORUM
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: WRITE_QUORUM
+          - name: READ_QUORUM
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: READ_QUORUM
+          - name: STORAGE_POLICY
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: STORAGE_POLICY
+          - name: CACHE_SIZE_MB
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: CACHE_SIZE_MB
+          - name: QUERY_CACHE_MB
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: QUERY_CACHE_MB
+          - name: ENABLE_PREFETCH
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: ENABLE_PREFETCH
+          - name: METRICS_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: s3-config
+                key: METRICS_PORT
+        ports:
+          - name: http
+            containerPort: 8080
+            protocol: TCP
+          - name: metrics
+            containerPort: 9091
+            protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        volumeMounts:
+          - name: tmp
+            mountPath: /app/tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3-gateway
+  namespace: s3-storage
+  labels:
+    app: s3-gateway
+    component: gateway
+spec:
+  type: LoadBalancer
+  selector:
+    app: s3-gateway
+    component: gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9091
+      targetPort: 9091
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3-gateway-metrics
+  namespace: s3-storage
+  labels:
+    app: s3-gateway
+    component: gateway
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9091"
+spec:
+  type: ClusterIP
+  selector:
+    app: s3-gateway
+    component: gateway
+  ports:
+    - name: metrics
+      port: 9091
+      targetPort: 9091
+      protocol: TCP

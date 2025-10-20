@@ -1,0 +1,67 @@
+# Git files
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# Test files
+*_test.go
+test/
+tests/
+testdata/
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+s3_server
+bin/
+dist/
+build/
+
+# Data directories
+data/
+tmp/
+lifecycle/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Go specific
+vendor/
+*.test
+*.out
+coverage.txt
+*.prof
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Scripts
+*.sh
+!build_and_setup.sh
+
+# Config files that shouldn't be in image
+auth.json
+prometheus.yml
+grafana-dashboard.json
+
+# Misc
+TODO.md
+NOTES.md
+.env
+.env.*

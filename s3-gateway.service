@@ -1,0 +1,61 @@
+[Unit]
+Description=S3 Gateway Server
+Documentation=https://github.com/iProDev/S3-Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=s3user
+Group=s3user
+
+# Working directory
+WorkingDirectory=/opt/s3_server
+
+# Binary and arguments
+ExecStart=/opt/s3_server/s3_server \
+    -mode gateway \
+    -listen :8080 \
+    -nodes http://localhost:8081,http://localhost:8082,http://localhost:8083 \
+    -replicas 3 \
+    -w 2 \
+    -r 1 \
+    -storage_policy replication \
+    -backend_auth_token ${NODE_AUTH_TOKEN} \
+    -auth_enabled true \
+    -auth_config /etc/s3_server/auth.json \
+    -metrics_enabled true \
+    -metrics_port 9091 \
+    -lifecycle_enabled true \
+    -lifecycle_config_dir /etc/s3_server/lifecycle \
+    -performance_enabled true \
+    -cache_size_mb 512 \
+    -query_cache_mb 64 \
+    -log_level info
+
+# Restart policy
+Restart=always
+RestartSec=5s
+StartLimitInterval=0
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/s3_server /tmp
+
+# Environment file
+EnvironmentFile=-/etc/s3_server/gateway.env
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=s3-gateway
+
+[Install]
+WantedBy=multi-user.target

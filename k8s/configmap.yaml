@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-config
+  namespace: s3-storage
+data:
+  # Node configuration
+  NODE_LOG_LEVEL: "info"
+  
+  # Gateway configuration
+  GATEWAY_LOG_LEVEL: "info"
+  REPLICAS: "3"
+  WRITE_QUORUM: "2"
+  READ_QUORUM: "1"
+  STORAGE_POLICY: "replication"
+  
+  # Performance configuration
+  CACHE_SIZE_MB: "512"
+  QUERY_CACHE_MB: "64"
+  ENABLE_PREFETCH: "false"
+  
+  # Metrics configuration
+  METRICS_PORT: "9091"

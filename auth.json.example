@@ -1,0 +1,18 @@
+[
+  {
+    "access_key": "AKEXAMPLE00000000001",
+    "secret_key": "secretkey1234567890abcdefghijklmnopqrstuv",
+    "name": "production-app",
+    "created_at": "2025-01-15T10:00:00Z",
+    "active": true,
+    "permissions": ["read", "write", "delete"]
+  },
+  {
+    "access_key": "AKEXAMPLE00000000002",
+    "secret_key": "anothersecretkey0987654321zyxwvutsrqpo",
+    "name": "read-only-app",
+    "created_at": "2025-01-15T11:00:00Z",
+    "active": true,
+    "permissions": ["read"]
+  }
+]
