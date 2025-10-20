@@ -42,7 +42,9 @@ jobs:
           BINARY_NAME="${BINARY_NAME}.exe"
         fi
         mkdir -p dist
-        go build -ldflags="-s -w" -o dist/${BINARY_NAME} ./cmd/s3_server
+        go mod tidy
+        go mod download
+        CGO_ENABLED=0 go build -ldflags="-s -w" -o dist/${BINARY_NAME} ./cmd/s3_server
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
