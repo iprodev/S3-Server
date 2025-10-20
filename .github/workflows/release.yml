@@ -17,20 +17,12 @@ jobs:
           - goos: linux
             goarch: arm64
           - goos: linux
-            goarch: armv7
-          - goos: linux
-            goarch: armv6
-          - goos: linux
-            goarch: armv5
-          - goos: linux
-            goarch: 386
-          - goos: linux
-            goarch: s390x
+            goarch: arm64
           - goos: darwin
             goarch: amd64
           - goos: darwin
             goarch: arm64
-
+  
     steps:
     - uses: actions/checkout@v4
 
