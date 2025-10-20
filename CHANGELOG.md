@@ -296,7 +296,7 @@ This is the first production-ready release of the S3-Compatible Object Storage S
 
 ### 👥 Contributors
 
-- Lead Developer: [Your Name]
+- Lead Developer: [Hemn]
 - Contributors: See [CONTRIBUTORS.md](CONTRIBUTORS.md)
 
 ### 📜 License
