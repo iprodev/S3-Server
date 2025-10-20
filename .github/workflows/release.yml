@@ -48,6 +48,7 @@ jobs:
       with:
         name: S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
         path: ./S3-Server-${{ matrix.goos }}-${{ matrix.goarch }}
+        overwrite: true
 
     - name: Upload files to GH release
       uses: svenstaro/upload-release-action@v2
