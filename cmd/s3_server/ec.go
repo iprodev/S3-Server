@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/iProDev/S3-Server/miniobject"
 	"github.com/klauspost/reedsolomon"
-	"github.com/iProDev/s3_server/miniobject"
 )
 
 type ECBackend struct {

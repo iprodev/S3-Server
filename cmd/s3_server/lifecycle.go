@@ -9,34 +9,34 @@ import (
 	"sync"
 	"time"
 
-	"github.com/iProDev/s3_server/miniobject"
+	"github.com/iProDev/S3-Server/miniobject"
 )
 
 // LifecycleRule defines an object lifecycle rule
 type LifecycleRule struct {
-	ID                   string        `json:"id"`
-	Prefix               string        `json:"prefix"`
-	Enabled              bool          `json:"enabled"`
-	ExpirationDays       int           `json:"expiration_days"`        // Delete after N days
-	TransitionDays       int           `json:"transition_days"`        // Transition to cheaper storage after N days
-	AbortIncompleteMultipartDays int  `json:"abort_incomplete_multipart_days"` // Abort incomplete multipart uploads
-	DeleteMarkerExpiration bool        `json:"delete_marker_expiration"` // Remove expired delete markers
+	ID                           string `json:"id"`
+	Prefix                       string `json:"prefix"`
+	Enabled                      bool   `json:"enabled"`
+	ExpirationDays               int    `json:"expiration_days"`                 // Delete after N days
+	TransitionDays               int    `json:"transition_days"`                 // Transition to cheaper storage after N days
+	AbortIncompleteMultipartDays int    `json:"abort_incomplete_multipart_days"` // Abort incomplete multipart uploads
+	DeleteMarkerExpiration       bool   `json:"delete_marker_expiration"`        // Remove expired delete markers
 }
 
 // LifecycleConfig bucket lifecycle configuration
 type LifecycleConfig struct {
-	Bucket string           `json:"bucket"`
-	Rules  []LifecycleRule  `json:"rules"`
+	Bucket string          `json:"bucket"`
+	Rules  []LifecycleRule `json:"rules"`
 }
 
 // LifecycleManager manages object lifecycle policies
 type LifecycleManager struct {
-	configs    map[string]*LifecycleConfig
-	configDir  string
-	backend    miniobject.Backend
-	mu         sync.RWMutex
-	stopCh     chan struct{}
-	logger     *Logger
+	configs   map[string]*LifecycleConfig
+	configDir string
+	backend   miniobject.Backend
+	mu        sync.RWMutex
+	stopCh    chan struct{}
+	logger    *Logger
 }
 
 // NewLifecycleManager creates a new lifecycle manager
@@ -51,7 +51,7 @@ func NewLifecycleManager(configDir string, backend miniobject.Backend, logger *L
 
 	os.MkdirAll(configDir, 0755)
 	lm.loadAll()
-	
+
 	return lm
 }
 
@@ -190,7 +190,7 @@ func (lm *LifecycleManager) processBucket(config *LifecycleConfig) {
 	}
 
 	now := time.Now()
-	
+
 	for _, obj := range objects {
 		for _, rule := range config.Rules {
 			if !rule.Enabled {
@@ -232,7 +232,7 @@ func (lm *LifecycleManager) ShouldExpire(bucket, key string, lastModified time.T
 	}
 
 	now := time.Now()
-	
+
 	for _, rule := range config.Rules {
 		if !rule.Enabled {
 			continue

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/iProDev/s3_server/miniobject"
+	"github.com/iProDev/S3-Server/miniobject"
 )
 
 type NodeServer struct {

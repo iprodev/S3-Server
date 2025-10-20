@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/iProDev/s3_server/miniobject"
+	"github.com/iProDev/S3-Server/miniobject"
 )
 
 var (
@@ -40,31 +40,31 @@ type BatchRequest struct {
 
 // BatchItem represents a single item in a batch operation
 type BatchItem struct {
-	Bucket        string `json:"bucket"`
-	Key           string `json:"key"`
-	VersionID     string `json:"version_id,omitempty"`
-	DestBucket    string `json:"dest_bucket,omitempty"` // For copy/move
-	DestKey       string `json:"dest_key,omitempty"`    // For copy/move
+	Bucket     string `json:"bucket"`
+	Key        string `json:"key"`
+	VersionID  string `json:"version_id,omitempty"`
+	DestBucket string `json:"dest_bucket,omitempty"` // For copy/move
+	DestKey    string `json:"dest_key,omitempty"`    // For copy/move
 }
 
 // BatchOptions configuration options for batch operations
 type BatchOptions struct {
-	Concurrency   int  `json:"concurrency"`    // Number of parallel operations
+	Concurrency     int  `json:"concurrency"`       // Number of parallel operations
 	ContinueOnError bool `json:"continue_on_error"` // Continue if individual operations fail
-	DryRun        bool `json:"dry_run"`        // Preview without executing
+	DryRun          bool `json:"dry_run"`           // Preview without executing
 }
 
 // BatchResponse represents the response from a batch operation
 type BatchResponse struct {
-	JobID        string              `json:"job_id"`
-	Operation    BatchOperationType  `json:"operation"`
-	TotalItems   int                 `json:"total_items"`
-	Successful   int                 `json:"successful"`
-	Failed       int                 `json:"failed"`
-	Errors       []BatchItemError    `json:"errors,omitempty"`
-	Duration     time.Duration       `json:"duration"`
-	StartedAt    time.Time           `json:"started_at"`
-	CompletedAt  time.Time           `json:"completed_at"`
+	JobID       string             `json:"job_id"`
+	Operation   BatchOperationType `json:"operation"`
+	TotalItems  int                `json:"total_items"`
+	Successful  int                `json:"successful"`
+	Failed      int                `json:"failed"`
+	Errors      []BatchItemError   `json:"errors,omitempty"`
+	Duration    time.Duration      `json:"duration"`
+	StartedAt   time.Time          `json:"started_at"`
+	CompletedAt time.Time          `json:"completed_at"`
 }
 
 // BatchItemError represents an error for a specific item
@@ -84,11 +84,11 @@ type BatchProcessor struct {
 
 // BatchJob represents a running or completed batch job
 type BatchJob struct {
-	ID          string
-	Request     *BatchRequest
-	Response    *BatchResponse
-	Status      string // running, completed, failed
-	mu          sync.RWMutex
+	ID       string
+	Request  *BatchRequest
+	Response *BatchResponse
+	Status   string // running, completed, failed
+	mu       sync.RWMutex
 }
 
 // NewBatchProcessor creates a new batch processor
@@ -107,12 +107,12 @@ func (bp *BatchProcessor) Execute(ctx context.Context, request *BatchRequest) (*
 	if err := bp.validateRequest(request); err != nil {
 		return nil, err
 	}
-	
+
 	// Set defaults
 	if request.Options.Concurrency == 0 {
 		request.Options.Concurrency = 10 // Default concurrency
 	}
-	
+
 	// Create job
 	job := &BatchJob{
 		ID:      generateJobID(),
@@ -125,20 +125,20 @@ func (bp *BatchProcessor) Execute(ctx context.Context, request *BatchRequest) (*
 			StartedAt:  time.Now(),
 		},
 	}
-	
+
 	// Register job
 	bp.mu.Lock()
 	bp.jobs[job.ID] = job
 	bp.mu.Unlock()
-	
+
 	// Execute asynchronously if not dry run
 	if request.Options.DryRun {
 		return bp.dryRun(ctx, job)
 	}
-	
+
 	// Execute in goroutine
 	go bp.executeJob(ctx, job)
-	
+
 	return job.Response, nil
 }
 
@@ -150,7 +150,7 @@ func (bp *BatchProcessor) executeJob(ctx context.Context, job *BatchJob) {
 		job.Response.Duration = job.Response.CompletedAt.Sub(job.Response.StartedAt)
 		job.Status = "completed"
 		job.mu.Unlock()
-		
+
 		bp.logger.Info("batch job completed",
 			"job_id", job.ID,
 			"operation", job.Request.Operation,
@@ -159,35 +159,35 @@ func (bp *BatchProcessor) executeJob(ctx context.Context, job *BatchJob) {
 			"failed", job.Response.Failed,
 			"duration", job.Response.Duration)
 	}()
-	
+
 	// Create worker pool
 	workers := job.Request.Options.Concurrency
 	items := make(chan BatchItem, len(job.Request.Operations))
 	results := make(chan *batchResult, len(job.Request.Operations))
-	
+
 	// Start workers
 	var wg sync.WaitGroup
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go bp.worker(ctx, job, items, results, &wg)
 	}
-	
+
 	// Send items to workers
 	for _, item := range job.Request.Operations {
 		items <- item
 	}
 	close(items)
-	
+
 	// Wait for workers
 	go func() {
 		wg.Wait()
 		close(results)
 	}()
-	
+
 	// Collect results
 	var successful, failed int32
 	var errors []BatchItemError
-	
+
 	for result := range results {
 		if result.err != nil {
 			atomic.AddInt32(&failed, 1)
@@ -199,7 +199,7 @@ func (bp *BatchProcessor) executeJob(ctx context.Context, job *BatchJob) {
 			atomic.AddInt32(&successful, 1)
 		}
 	}
-	
+
 	// Update response
 	job.mu.Lock()
 	job.Response.Successful = int(successful)
@@ -216,10 +216,10 @@ type batchResult struct {
 // worker processes batch items
 func (bp *BatchProcessor) worker(ctx context.Context, job *BatchJob, items <-chan BatchItem, results chan<- *batchResult, wg *sync.WaitGroup) {
 	defer wg.Done()
-	
+
 	for item := range items {
 		var err error
-		
+
 		switch job.Request.Operation {
 		case BatchDelete:
 			err = bp.deleteItem(ctx, item)
@@ -232,9 +232,9 @@ func (bp *BatchProcessor) worker(ctx context.Context, job *BatchJob, items <-cha
 		default:
 			err = fmt.Errorf("unknown operation: %s", job.Request.Operation)
 		}
-		
+
 		results <- &batchResult{item: item, err: err}
-		
+
 		// Stop on first error if not continuing
 		if err != nil && !job.Request.Options.ContinueOnError {
 			break
@@ -249,7 +249,7 @@ func (bp *BatchProcessor) deleteItem(ctx context.Context, item BatchItem) error 
 		// Full version deletion would need versionManager.DeleteSpecificVersion method
 		return bp.backend.Delete(ctx, item.Bucket, item.Key)
 	}
-	
+
 	// Delete object (creates delete marker if versioned)
 	return bp.backend.Delete(ctx, item.Bucket, item.Key)
 }
@@ -262,36 +262,36 @@ func (bp *BatchProcessor) copyItem(ctx context.Context, item BatchItem) error {
 		return fmt.Errorf("read source: %w", err)
 	}
 	defer rc.Close()
-	
+
 	// Read all data
 	data, err := io.ReadAll(rc)
 	if err != nil {
 		return fmt.Errorf("read data: %w", err)
 	}
-	
+
 	// Write to destination
 	destBucket := item.DestBucket
 	if destBucket == "" {
 		destBucket = item.Bucket
 	}
-	
+
 	destKey := item.DestKey
 	if destKey == "" {
 		destKey = item.Key
 	}
-	
+
 	_, err = bp.backend.Put(ctx, destBucket, destKey, io.NopCloser(newBytesReader(data)), contentType, "")
 	if err != nil {
 		return fmt.Errorf("write destination: %w", err)
 	}
-	
+
 	bp.logger.Debug("copied object",
 		"source_bucket", item.Bucket,
 		"source_key", item.Key,
 		"dest_bucket", destBucket,
 		"dest_key", destKey,
 		"etag", etag)
-	
+
 	return nil
 }
 
@@ -301,7 +301,7 @@ func (bp *BatchProcessor) moveItem(ctx context.Context, item BatchItem) error {
 	if err := bp.copyItem(ctx, item); err != nil {
 		return err
 	}
-	
+
 	// Delete source
 	return bp.backend.Delete(ctx, item.Bucket, item.Key)
 }
@@ -311,7 +311,7 @@ func (bp *BatchProcessor) restoreItem(ctx context.Context, item BatchItem) error
 	if item.VersionID == "" {
 		return errors.New("version_id required for restore operation")
 	}
-	
+
 	// For now, restore is not fully implemented
 	// Would need to copy the specific version to be the latest version
 	return errors.New("restore not yet implemented")
@@ -322,10 +322,10 @@ func (bp *BatchProcessor) dryRun(ctx context.Context, job *BatchJob) (*BatchResp
 	job.Response.CompletedAt = time.Now()
 	job.Response.Duration = time.Millisecond // Instant for dry run
 	job.Status = "dry_run"
-	
+
 	// Validate each item
 	var errors []BatchItemError
-	
+
 	for _, item := range job.Request.Operations {
 		if err := bp.validateItem(item, job.Request.Operation); err != nil {
 			errors = append(errors, BatchItemError{
@@ -334,7 +334,7 @@ func (bp *BatchProcessor) dryRun(ctx context.Context, job *BatchJob) (*BatchResp
 			})
 		}
 	}
-	
+
 	if len(errors) > 0 {
 		job.Response.Failed = len(errors)
 		job.Response.Successful = job.Response.TotalItems - len(errors)
@@ -342,7 +342,7 @@ func (bp *BatchProcessor) dryRun(ctx context.Context, job *BatchJob) (*BatchResp
 	} else {
 		job.Response.Successful = job.Response.TotalItems
 	}
-	
+
 	return job.Response, nil
 }
 
@@ -350,12 +350,12 @@ func (bp *BatchProcessor) dryRun(ctx context.Context, job *BatchJob) (*BatchResp
 func (bp *BatchProcessor) GetJob(jobID string) (*BatchJob, error) {
 	bp.mu.RLock()
 	defer bp.mu.RUnlock()
-	
+
 	job, ok := bp.jobs[jobID]
 	if !ok {
 		return nil, errors.New("job not found")
 	}
-	
+
 	return job, nil
 }
 
@@ -363,12 +363,12 @@ func (bp *BatchProcessor) GetJob(jobID string) (*BatchJob, error) {
 func (bp *BatchProcessor) ListJobs() []*BatchJob {
 	bp.mu.RLock()
 	defer bp.mu.RUnlock()
-	
+
 	jobs := make([]*BatchJob, 0, len(bp.jobs))
 	for _, job := range bp.jobs {
 		jobs = append(jobs, job)
 	}
-	
+
 	return jobs
 }
 
@@ -377,18 +377,18 @@ func (bp *BatchProcessor) validateRequest(request *BatchRequest) error {
 	if len(request.Operations) == 0 {
 		return ErrEmptyBatch
 	}
-	
+
 	if len(request.Operations) > MaxBatchSize {
 		return ErrBatchTooLarge
 	}
-	
+
 	// Validate each item
 	for _, item := range request.Operations {
 		if err := bp.validateItem(item, request.Operation); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -397,11 +397,11 @@ func (bp *BatchProcessor) validateItem(item BatchItem, operation BatchOperationT
 	if item.Bucket == "" {
 		return errors.New("bucket is required")
 	}
-	
+
 	if item.Key == "" {
 		return errors.New("key is required")
 	}
-	
+
 	switch operation {
 	case BatchCopy, BatchMove:
 		if item.DestBucket == "" && item.DestKey == "" {
@@ -412,7 +412,7 @@ func (bp *BatchProcessor) validateItem(item BatchItem, operation BatchOperationT
 			return errors.New("version_id required for restore")
 		}
 	}
-	
+
 	return nil
 }
 

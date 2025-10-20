@@ -12,20 +12,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/iProDev/s3_server/miniobject"
+	"github.com/iProDev/S3-Server/miniobject"
 )
 
 const (
-	DefaultChunkSize      = 5 * 1024 * 1024  // 5MB minimum chunk size
-	MaxConcurrentChunks   = 10                // Maximum parallel uploads
-	DefaultConcurrency    = 5                 // Default parallel uploads
-	MaxPartNumber         = 10000             // S3 limit
+	DefaultChunkSize    = 5 * 1024 * 1024 // 5MB minimum chunk size
+	MaxConcurrentChunks = 10              // Maximum parallel uploads
+	DefaultConcurrency  = 5               // Default parallel uploads
+	MaxPartNumber       = 10000           // S3 limit
 )
 
 var (
-	ErrInvalidChunkSize     = errors.New("chunk size must be at least 5MB")
-	ErrTooManyParts         = errors.New("too many parts (max 10000)")
-	ErrPartTooSmall         = errors.New("part size too small (min 5MB except last)")
+	ErrInvalidChunkSize = errors.New("chunk size must be at least 5MB")
+	ErrTooManyParts     = errors.New("too many parts (max 10000)")
+	ErrPartTooSmall     = errors.New("part size too small (min 5MB except last)")
 )
 
 // ConcurrentUpload manages a concurrent multipart upload
@@ -94,21 +94,21 @@ func (cum *ConcurrentUploadManager) InitiateConcurrentUpload(bucket, key string,
 	if chunkSize < DefaultChunkSize {
 		chunkSize = DefaultChunkSize
 	}
-	
+
 	if concurrency <= 0 {
 		concurrency = DefaultConcurrency
 	}
-	
+
 	if concurrency > MaxConcurrentChunks {
 		concurrency = MaxConcurrentChunks
 	}
-	
+
 	// Calculate number of parts
 	numParts := int((totalSize + chunkSize - 1) / chunkSize)
 	if numParts > MaxPartNumber {
 		return nil, ErrTooManyParts
 	}
-	
+
 	// Create upload
 	ctx, cancel := context.WithCancel(context.Background())
 	upload := &ConcurrentUpload{
@@ -122,7 +122,7 @@ func (cum *ConcurrentUploadManager) InitiateConcurrentUpload(bucket, key string,
 		ctx:         ctx,
 		cancel:      cancel,
 	}
-	
+
 	// Create parts
 	for i := 0; i < numParts; i++ {
 		offset := int64(i) * chunkSize
@@ -130,7 +130,7 @@ func (cum *ConcurrentUploadManager) InitiateConcurrentUpload(bucket, key string,
 		if offset+size > totalSize {
 			size = totalSize - offset
 		}
-		
+
 		upload.Parts = append(upload.Parts, &UploadPart{
 			PartNumber: i + 1,
 			Size:       size,
@@ -138,12 +138,12 @@ func (cum *ConcurrentUploadManager) InitiateConcurrentUpload(bucket, key string,
 			Uploaded:   false,
 		})
 	}
-	
+
 	// Register upload
 	cum.mu.Lock()
 	cum.uploads[upload.UploadID] = upload
 	cum.mu.Unlock()
-	
+
 	cum.logger.Info("concurrent upload initiated",
 		"upload_id", upload.UploadID,
 		"bucket", bucket,
@@ -152,7 +152,7 @@ func (cum *ConcurrentUploadManager) InitiateConcurrentUpload(bucket, key string,
 		"chunk_size", chunkSize,
 		"parts", len(upload.Parts),
 		"concurrency", concurrency)
-	
+
 	return upload, nil
 }
 
@@ -162,18 +162,18 @@ func (cum *ConcurrentUploadManager) UploadParts(uploadID string, reader io.Reade
 	if err != nil {
 		return err
 	}
-	
+
 	// Create worker pool
 	partsChan := make(chan *UploadPart, len(upload.Parts))
 	resultsChan := make(chan *UploadPart, len(upload.Parts))
-	
+
 	// Start workers
 	var wg sync.WaitGroup
 	for i := 0; i < upload.Concurrency; i++ {
 		wg.Add(1)
 		go cum.uploadWorker(upload, reader, partsChan, resultsChan, &wg)
 	}
-	
+
 	// Send parts to workers
 	for _, part := range upload.Parts {
 		if !part.Uploaded {
@@ -181,13 +181,13 @@ func (cum *ConcurrentUploadManager) UploadParts(uploadID string, reader io.Reade
 		}
 	}
 	close(partsChan)
-	
+
 	// Wait for workers
 	go func() {
 		wg.Wait()
 		close(resultsChan)
 	}()
-	
+
 	// Collect results
 	var failures int
 	for part := range resultsChan {
@@ -201,24 +201,24 @@ func (cum *ConcurrentUploadManager) UploadParts(uploadID string, reader io.Reade
 			atomic.AddInt64(&upload.UploadedSize, part.Size)
 		}
 	}
-	
+
 	if failures > 0 {
 		return fmt.Errorf("%d parts failed to upload", failures)
 	}
-	
+
 	cum.logger.Info("concurrent upload completed",
 		"upload_id", uploadID,
 		"parts", len(upload.Parts),
 		"size", upload.TotalSize,
 		"duration", time.Since(upload.StartTime))
-	
+
 	return nil
 }
 
 // uploadWorker uploads parts from the queue
 func (cum *ConcurrentUploadManager) uploadWorker(upload *ConcurrentUpload, reader io.ReaderAt, parts <-chan *UploadPart, results chan<- *UploadPart, wg *sync.WaitGroup) {
 	defer wg.Done()
-	
+
 	for part := range parts {
 		// Check if cancelled
 		select {
@@ -228,9 +228,9 @@ func (cum *ConcurrentUploadManager) uploadWorker(upload *ConcurrentUpload, reade
 			continue
 		default:
 		}
-		
+
 		part.StartTime = time.Now()
-		
+
 		// Read part data
 		data := make([]byte, part.Size)
 		n, err := reader.ReadAt(data, part.Offset)
@@ -240,11 +240,11 @@ func (cum *ConcurrentUploadManager) uploadWorker(upload *ConcurrentUpload, reade
 			continue
 		}
 		data = data[:n]
-		
+
 		// Calculate ETag (MD5)
 		hash := md5.Sum(data)
 		part.ETag = hex.EncodeToString(hash[:])
-		
+
 		// Upload part
 		partKey := fmt.Sprintf("%s.part.%d", upload.Key, part.PartNumber)
 		_, err = cum.backend.Put(upload.ctx, upload.Bucket, partKey, io.NopCloser(newBytesReaderFromBytes(data)), "application/octet-stream", "")
@@ -253,16 +253,16 @@ func (cum *ConcurrentUploadManager) uploadWorker(upload *ConcurrentUpload, reade
 			results <- part
 			continue
 		}
-		
+
 		part.Uploaded = true
 		part.EndTime = time.Now()
-		
+
 		cum.logger.Debug("part uploaded",
 			"upload_id", upload.UploadID,
 			"part", part.PartNumber,
 			"size", part.Size,
 			"duration", part.EndTime.Sub(part.StartTime))
-		
+
 		results <- part
 	}
 }
@@ -273,17 +273,17 @@ func (cum *ConcurrentUploadManager) GetProgress(uploadID string) (*UploadProgres
 	if err != nil {
 		return nil, err
 	}
-	
+
 	upload.mu.RLock()
 	defer upload.mu.RUnlock()
-	
+
 	progress := &UploadProgress{
 		TotalBytes:    upload.TotalSize,
 		UploadedBytes: atomic.LoadInt64(&upload.UploadedSize),
 		PartsTotal:    len(upload.Parts),
 		StartTime:     upload.StartTime,
 	}
-	
+
 	// Count completed and failed parts
 	for _, part := range upload.Parts {
 		if part.Uploaded {
@@ -293,18 +293,18 @@ func (cum *ConcurrentUploadManager) GetProgress(uploadID string) (*UploadProgres
 			progress.PartsFailed++
 		}
 	}
-	
+
 	// Calculate metrics
 	progress.ElapsedTime = time.Since(upload.StartTime)
 	if progress.ElapsedTime.Seconds() > 0 {
 		progress.Speed = float64(progress.UploadedBytes) / progress.ElapsedTime.Seconds()
 	}
-	
+
 	if progress.Speed > 0 {
 		remaining := progress.TotalBytes - progress.UploadedBytes
 		progress.ETA = time.Duration(float64(remaining)/progress.Speed) * time.Second
 	}
-	
+
 	return progress, nil
 }
 
@@ -314,7 +314,7 @@ func (cum *ConcurrentUploadManager) CompleteConcurrentUpload(uploadID string) (s
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Verify all parts uploaded
 	upload.mu.RLock()
 	for _, part := range upload.Parts {
@@ -328,14 +328,14 @@ func (cum *ConcurrentUploadManager) CompleteConcurrentUpload(uploadID string) (s
 		}
 	}
 	upload.mu.RUnlock()
-	
+
 	// Sort parts by part number
 	sortedParts := make([]*UploadPart, len(upload.Parts))
 	copy(sortedParts, upload.Parts)
 	sort.Slice(sortedParts, func(i, j int) bool {
 		return sortedParts[i].PartNumber < sortedParts[j].PartNumber
 	})
-	
+
 	// Combine parts (simplified - in production would stream)
 	var combinedData []byte
 	for _, part := range sortedParts {
@@ -344,30 +344,30 @@ func (cum *ConcurrentUploadManager) CompleteConcurrentUpload(uploadID string) (s
 		if err != nil {
 			return "", fmt.Errorf("read part %d: %w", part.PartNumber, err)
 		}
-		
+
 		partData, err := io.ReadAll(rc)
 		rc.Close()
 		if err != nil {
 			return "", fmt.Errorf("read part %d data: %w", part.PartNumber, err)
 		}
-		
+
 		combinedData = append(combinedData, partData...)
-		
+
 		// Clean up part
 		cum.backend.Delete(upload.ctx, upload.Bucket, partKey)
 	}
-	
+
 	// Write combined object
 	etag, err := cum.backend.Put(upload.ctx, upload.Bucket, upload.Key, io.NopCloser(newBytesReaderFromBytes(combinedData)), "application/octet-stream", "")
 	if err != nil {
 		return "", fmt.Errorf("write combined object: %w", err)
 	}
-	
+
 	// Clean up
 	cum.mu.Lock()
 	delete(cum.uploads, uploadID)
 	cum.mu.Unlock()
-	
+
 	cum.logger.Info("concurrent upload finalized",
 		"upload_id", uploadID,
 		"bucket", upload.Bucket,
@@ -376,7 +376,7 @@ func (cum *ConcurrentUploadManager) CompleteConcurrentUpload(uploadID string) (s
 		"parts", len(upload.Parts),
 		"total_duration", time.Since(upload.StartTime),
 		"etag", etag)
-	
+
 	return etag, nil
 }
 
@@ -386,10 +386,10 @@ func (cum *ConcurrentUploadManager) AbortConcurrentUpload(uploadID string) error
 	if err != nil {
 		return err
 	}
-	
+
 	// Cancel context
 	upload.cancel()
-	
+
 	// Clean up parts
 	for _, part := range upload.Parts {
 		if part.Uploaded {
@@ -397,14 +397,14 @@ func (cum *ConcurrentUploadManager) AbortConcurrentUpload(uploadID string) error
 			cum.backend.Delete(context.Background(), upload.Bucket, partKey)
 		}
 	}
-	
+
 	// Remove upload
 	cum.mu.Lock()
 	delete(cum.uploads, uploadID)
 	cum.mu.Unlock()
-	
+
 	cum.logger.Info("concurrent upload aborted", "upload_id", uploadID)
-	
+
 	return nil
 }
 
@@ -414,7 +414,7 @@ func (cum *ConcurrentUploadManager) RetryFailedParts(uploadID string, reader io.
 	if err != nil {
 		return err
 	}
-	
+
 	// Find failed parts
 	var failedParts []*UploadPart
 	upload.mu.RLock()
@@ -427,48 +427,48 @@ func (cum *ConcurrentUploadManager) RetryFailedParts(uploadID string, reader io.
 		}
 	}
 	upload.mu.RUnlock()
-	
+
 	if len(failedParts) == 0 {
 		return nil
 	}
-	
+
 	cum.logger.Info("retrying failed parts",
 		"upload_id", uploadID,
 		"failed_parts", len(failedParts))
-	
+
 	// Create worker pool for retries
 	partsChan := make(chan *UploadPart, len(failedParts))
 	resultsChan := make(chan *UploadPart, len(failedParts))
-	
+
 	var wg sync.WaitGroup
 	for i := 0; i < upload.Concurrency; i++ {
 		wg.Add(1)
 		go cum.uploadWorker(upload, reader, partsChan, resultsChan, &wg)
 	}
-	
+
 	// Send failed parts
 	for _, part := range failedParts {
 		partsChan <- part
 	}
 	close(partsChan)
-	
+
 	// Wait and collect
 	go func() {
 		wg.Wait()
 		close(resultsChan)
 	}()
-	
+
 	var stillFailed int
 	for part := range resultsChan {
 		if part.Error != nil {
 			stillFailed++
 		}
 	}
-	
+
 	if stillFailed > 0 {
 		return fmt.Errorf("%d parts still failed after retry", stillFailed)
 	}
-	
+
 	return nil
 }
 
@@ -477,12 +477,12 @@ func (cum *ConcurrentUploadManager) RetryFailedParts(uploadID string, reader io.
 func (cum *ConcurrentUploadManager) getUpload(uploadID string) (*ConcurrentUpload, error) {
 	cum.mu.RLock()
 	defer cum.mu.RUnlock()
-	
+
 	upload, ok := cum.uploads[uploadID]
 	if !ok {
 		return nil, errors.New("upload not found")
 	}
-	
+
 	return upload, nil
 }
 

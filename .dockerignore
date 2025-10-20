@@ -20,7 +20,6 @@ testdata/
 *.dll
 *.so
 *.dylib
-s3_server
 bin/
 dist/
 build/

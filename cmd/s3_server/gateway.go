@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/iProDev/s3_server/miniobject"
+	"github.com/iProDev/S3-Server/miniobject"
 )
 
 var (
@@ -23,16 +23,16 @@ var (
 )
 
 type GatewayServer struct {
-	cfg                *Config
-	logger             *Logger
-	backend            miniobject.Backend
-	ecEnabled          bool
-	ecBackend          *ECBackend
-	multipart          *MultipartManager
-	repairTicker       *time.Ticker
-	sweepTicker        *time.Ticker
-	shutdown           chan struct{}
-	wg                 sync.WaitGroup
+	cfg          *Config
+	logger       *Logger
+	backend      miniobject.Backend
+	ecEnabled    bool
+	ecBackend    *ECBackend
+	multipart    *MultipartManager
+	repairTicker *time.Ticker
+	sweepTicker  *time.Ticker
+	shutdown     chan struct{}
+	wg           sync.WaitGroup
 	// New features
 	metrics            *Metrics
 	authManager        *AuthManager

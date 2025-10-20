@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/iProDev/s3_server/miniobject"
+	"github.com/iProDev/S3-Server/miniobject"
 )
 
 // VersionManager handles object versioning
@@ -48,9 +48,9 @@ func NewVersionManager(versionsDir string, backend miniobject.Backend) *VersionM
 func (vm *VersionManager) EnableVersioning(bucket string) error {
 	vm.mu.Lock()
 	defer vm.mu.Unlock()
-	
+
 	vm.enabled[bucket] = true
-	
+
 	// Create versions directory
 	versionPath := filepath.Join(vm.versionsDir, bucket)
 	return os.MkdirAll(versionPath, 0755)
@@ -70,7 +70,7 @@ func (vm *VersionManager) PutVersion(ctx context.Context, bucket, key string, et
 	}
 
 	versionID := generateVersionID()
-	
+
 	// Load existing versions
 	versions, err := vm.loadVersions(bucket, key)
 	if err != nil {
@@ -108,7 +108,7 @@ func (vm *VersionManager) DeleteVersion(ctx context.Context, bucket, key string)
 	}
 
 	versionID := generateVersionID()
-	
+
 	versions, err := vm.loadVersions(bucket, key)
 	if err != nil {
 		versions = &VersionList{Versions: []Version{}}
@@ -169,7 +169,7 @@ func (vm *VersionManager) GetVersion(bucket, key, versionID string) (*Version, e
 // loadVersions loads version metadata from disk
 func (vm *VersionManager) loadVersions(bucket, key string) (*VersionList, error) {
 	versionFile := vm.versionPath(bucket, key)
-	
+
 	data, err := os.ReadFile(versionFile)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -189,7 +189,7 @@ func (vm *VersionManager) loadVersions(bucket, key string) (*VersionList, error)
 // saveVersions saves version metadata to disk
 func (vm *VersionManager) saveVersions(bucket, key string, versions *VersionList) error {
 	versionFile := vm.versionPath(bucket, key)
-	
+
 	// Create directory if needed
 	dir := filepath.Dir(versionFile)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -238,7 +238,7 @@ func (s *GatewayServer) handleListObjectVersions(w http.ResponseWriter, r *http.
 	}
 
 	key := r.URL.Query().Get("prefix")
-	
+
 	versions, err := s.versionManager.ListVersions(bucket, key)
 	if err != nil {
 		s.writeS3Error(w, r, "InternalError", err.Error(), http.StatusInternalServerError)
@@ -248,7 +248,7 @@ func (s *GatewayServer) handleListObjectVersions(w http.ResponseWriter, r *http.
 	// Return XML response (simplified)
 	w.Header().Set("Content-Type", "application/xml")
 	w.WriteHeader(http.StatusOK)
-	
+
 	fmt.Fprintf(w, `<?xml version="1.0" encoding="UTF-8"?>
 <ListVersionsResult>
   <Name>%s</Name>
